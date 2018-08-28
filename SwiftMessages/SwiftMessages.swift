@@ -309,6 +309,13 @@ open class SwiftMessages {
          label, e.g. "dismiss" when the `interactive` option is used.
         */
         public var dimModeAccessibilityLabel: String = "dismiss"
+
+        /**
+         If specified, SwiftMessages calls this closure when an instance of
+         `WindowViewController` is needed. Use this if you need to supply a custom subclass
+         of `WindowViewController`.
+         */
+        public var windowViewController: ((_ windowLevel: UIWindowLevel?, _ config: SwiftMessages.Config) -> WindowViewController)?
     }
     
     /**
@@ -479,6 +486,12 @@ open class SwiftMessages {
             guard ids.contains(presenter.id) else { return false }
             ids.remove(presenter.id)
             return true
+        }
+    }
+
+    func show(presenter: Presenter) {
+        messageQueue.sync {
+            enqueue(presenter: presenter)
         }
     }
 
@@ -769,7 +782,11 @@ extension SwiftMessages {
             }
         }
         let arrayOfViews = resolvedBundle.loadNibNamed(name, owner: filesOwner, options: nil) ?? []
+        #if swift(>=4.1)
+        guard let view = arrayOfViews.compactMap( { $0 as? T} ).first else { throw SwiftMessagesError.cannotLoadViewFromNib(nibName: name) }
+        #else
         guard let view = arrayOfViews.flatMap( { $0 as? T} ).first else { throw SwiftMessagesError.cannotLoadViewFromNib(nibName: name) }
+        #endif
         return view
     }
 }
